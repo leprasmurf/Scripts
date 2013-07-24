@@ -74,6 +74,7 @@ f_sudoers() {
 		echo "Group already in Sudoers"
 	else
 		echo "%${sudoadd}       ALL=(ALL)       ALL"  >> ${sudoers}
+		echo "Adding ${sudoadd} to sudoers file"
 	fi
 }
 
@@ -100,9 +101,10 @@ then
 
 	if grep -q "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" ${pam_pass}
 	then 
-		echo "Group already in Sudoers"
+		echo "PAM already configured"
 	else
 		echo "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" >> ${pam_pass}
+		echo "Configuring Pam"
 	fi
 	
 	echo -n "Please provide a user with sufficient privelage to join the domain : "	
