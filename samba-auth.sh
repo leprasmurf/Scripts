@@ -51,18 +51,18 @@ f_input() {
                                                                                                                            
         echo "Installing Required Packages"                                                                                
         
-  if [ ${redhat} ];
+        if [ ${redhat} ];
 	then
 		f_yum
         	echo "Configuring Packages"
 	elif [ ${ubuntu} ];
 	then
 		f_aptget
-	        echo "Configuring Packages"
+	       	echo "Configuring Packages"
 	else
 		echo "No Package Manager Found"
 		exit 2
-        fi                                                                                                                 
+	fi                                                                                                                 
 }
 
 f_sudoers() {
@@ -70,9 +70,10 @@ f_sudoers() {
 	REPLY=${REPLY:-$sudoadd}                                                                                   
 
 	if grep -q "%${sudoadd} ALL=(ALL)       ALL" ${sudoers}                                                    
-		then                                                                                                       			echo "Group already in Sudoers"
-		else
-			echo "%${sudoadd}       ALL=(ALL)       ALL"  >> ${sudoers}
+	then
+		echo "Group already in Sudoers"
+	else
+		echo "%${sudoadd}       ALL=(ALL)       ALL"  >> ${sudoers}
 	fi
 }
 
@@ -104,12 +105,12 @@ then
 		echo "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" >> ${pam_pass}
 	fi
 	
-	echo -n "Please provide a user with sufficient privelage to join the domain : "
+	echo -n "Please provide a user with sufficient privelage to join the domain : "	
 	read user
 
 	net ads join -U "${user}"
 else
 	echo "Script aborted"
-    exit 0
+	exit 0
 fi
 exit 0
