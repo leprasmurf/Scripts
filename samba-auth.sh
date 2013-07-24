@@ -98,7 +98,8 @@ then
 	fi
 
 	if grep -q "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" ${pam_pass}
-		then echo "Group already in Sudoers"
+	then 
+		echo "Group already in Sudoers"
 	else
 		echo "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" >> ${pam_pass}
 	fi
