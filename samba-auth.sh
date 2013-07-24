@@ -1,118 +1,120 @@
 #!/bin/bash
 
+### Command Variables
+YUM="/usr/bin/yum";
+APT-GET="/usr/bin/apt-get";
+AUTHCONFIG="/usr/bin/authconfig";
+
 ### Script Variables
 
-sudoers="/etc/sudoers"
-ubuntu="/etc/debian_version"
-redhat="/etc/redhat-release"
-pam_pass="/etc/pam.d/password-auth"
+SUDOERS="/etc/sudoers";
+UBUNTU="/etc/debian_version";
+REDHAT="/etc/redhat-release";
 
-### Domain Variables ###                                                                                                   
+### Domain Variables ###
                                                                                                                            
-wg=""                                                                                                                
-realm=""                                                                                                       
-homedir="/home"                                                                                                            
-shell="/bin/bash"                                                                                                          
-security="ADS"                                                                                                             
-sudo="n"                                                                                                                   
-sudoadd=""   
+WG="";
+REALM="";
+HOMEDIR="/home";
+SHELL="/bin/bash";
+SECURITY="ADS";
+SUDO="n";
+SUDOADD="";
 
-### Packages ###                                                                                                           
+### Packages ###
                                                                                                                            
-pam_krb="pam_krb5"                                                                                                         
-samba="samba"                                                                                                              
-win_bind="samba-winbind"
+PAM_KRB="pam_krb5";
+SAMBA="samba";
+WIN_BIND="samba-winbind";
 
 ### Functions ###
 
-f_yum() {
-yum install ${pam_krb} ${samba} ${win_bind}
+function f_yum() {
+	${YUM} install ${PAM_KRB} ${SAMBA} ${WIN_BIND};
 }
 
-f_aptget() {
-apt-get install ${pam_krb} ${samba} ${win_bind}
+function f_aptget() {
+	${APT-GET} install ${PAM_KRB} ${SAMBA} ${WIN_BIND};
 }
 
-f_input() {
-        read -p "Please enter the FQDN of the domain you wish to join [$realm]: "                                          
-        REPLY=${REPLY:-$realm}                                                                                             
-                                                                                                                           
-        read -p "Please enter the Samba workgroup (Think Windows workgroups) [$wg]: "                                      
-        REPLY=${REPLY:-$wg}                                                                                                
-                                                                                                                           
-        read -p "Please enter the preferred path for user profiles [$homedir] : "                                          
-        REPLY=${REPLY:-$homedir}                                                                                           
-                                                                                                                           
-        read -p "Please enter the preferred shell for the users [$shell] : "                                               
-        REPLY=${REPLY:-$shell}                                                                                             
-                                                                                                                           
-        read -p "Please enter the preferred security model (If unsure use default) [$security] : "                         
-        REPLY=${REPLY:-$security}                                                                                          
-                                                                                                                           
-        echo "Installing Required Packages"                                                                                
+function f_input() {
+	read -p "Please enter the FQDN of the domain you wish to join [${REALM}]: ";
+	REPLY=${REPLY:-${REALM}};
+																													   
+	read -p "Please enter the Samba workgroup (Think Windows workgroups) [${WG}]: ";
+	REPLY=${REPLY:-${WG}};
+																													   
+	read -p "Please enter the preferred path for user profiles [${HOMEDIR}] : ";
+	REPLY=${REPLY:-${HOMEDIR}};
+																													   
+	read -p "Please enter the preferred shell for the users [${SHELL}] : ";
+	REPLY=${REPLY:-${SHELL}};
+																													   
+	read -p "Please enter the preferred security model (If unsure use default) [${SECURITY}] : ";
+	REPLY=${REPLY:-${SECURITY}};
+																													   
+	echo "Installing Required Packages";
         
-        if [ ${redhat} ];
+	if [ -f ${REDHAT} ];
 	then
-		f_yum
-        	echo "Configuring Packages"
-	elif [ ${ubuntu} ];
+		f_yum;
+		echo "Configuring Packages";
+	elif [ -f ${UBUNTU} ];
 	then
-		f_aptget
-	       	echo "Configuring Packages"
+		f_aptget;
+		echo "Configuring Packages";
 	else
-		echo "No Package Manager Found"
-		exit 2
-	fi                                                                                                                 
+		echo "No Package Manager Found";
+		exit 2;
+	fi
 }
 
-f_sudoers() {
-	read -p "Please enter the name of the group you wish to add [$sudoadd] : " REPLY                           
-	REPLY=${REPLY:-$sudoadd}                                                                                   
+function f_sudoers() {
+	read -p "Please enter the name of the group you wish to add [$sudoadd] : " REPLY;
+	REPLY=${REPLY:-${SUDOADD}};
 
-	if grep -q "%${sudoadd} ALL=(ALL)       ALL" ${sudoers}                                                    
+	if grep -q "%${SUDOADD} ALL=(ALL) ALL" ${SUDOERS}
 	then
-		echo "Group already in Sudoers"
+		echo "Group already in Sudoers";
 	else
-		echo "%${sudoadd}       ALL=(ALL)       ALL"  >> ${sudoers}
-		echo "Adding ${sudoadd} to sudoers file"
+		echo "%${SUDOADD} ALL=(ALL) ALL" >> ${SUDOERS};
 	fi
 }
 
 ### Begin Script ###
 
-echo -n "This will script will automatically configure the host to authenticate against a Windows domain controller of your choosing. Please use your admin account when joining the domain. Would you like to continue? [y/n] : "
-read answer
+echo -n "This will script will automatically configure the host to authenticate against a Windows domain controller of your choosing. Please use your admin account when joining the domain. Would you like to continue? [y/n] : ";
+read ANSWER;
 
-if [ $answer = "y" -o $answer = "yes" -o $answer = "YES" -o $answer = "Y" ];
+ANSWER=$( echo ${ANSWER} | tr '[:upper:]' '[:lower:]' );
+
+if [ ${ANSWER} == "y*" ];
 then
-	f_input
+	f_input;
 
-	authconfig --disablecache --enablewinbind --enablewinbindauth --smbsecurity=${security} --smbworkgroup="${wg}" --enablewinbindusedefaultdomain --winbindtemplatehomedir="${homedir}/%U" --winbindtemplateshell="${shell}" --enablekrb5 --krb5realm=${realm} --enablekrb5kdcdns --enablekrb5realmdns --enablelocauthorize --enablemkhomedir --enablepamaccess --updateall
+	${AUTHCONFIG} --disablecache --enablewinbind --enablewinbindauth --smbsecurity=${SECURITY} --smbworkgroup="${WG}" --enablewinbindusedefaultdomain --winbindtemplatehomedir="${HOMEDIR}/%U" --winbindtemplateshell="${shell}" --enablekrb5 --krb5realm=${REALM} --enablekrb5kdcdns --enablekrb5realmdns --enablelocauthorize --enablemkhomedir --enablepamaccess --updateall;
 
-	echo -n "Would you like to add a group to sudoers now? [$sudo] :"
-	read sudo
+	echo -n "Would you like to add a group to sudoers now? [$SUDO] :";
+	read SUDO;
 
-	if [ $sudo = "y" -o $sudo = "yes" -o $sudo = "YES" -o $sudo = "Y" ];
-	then
-		f_sudoers
-	else
-		echo "Skipping Sudoers"
-	fi
-
-	if grep -q "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" ${pam_pass}
-	then 
-		echo "PAM already configured"
-	else
-		echo "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" >> ${pam_pass}
-		echo "Configuring Pam"
-	fi
+	SUDO=$( echo ${SUDO} | tr '[:upper:]' '[:lower:]' );
 	
-	echo -n "Please provide a user with sufficient privelage to join the domain : "	
-	read user
+	if [ ${SUDO} == "y*" ];
+	then
+		f_sudoers;
+	else
+		echo "Skipping Sudoers";
+	fi
 
-	net ads join -U "${user}"
+	echo "auth requisite pam_succeed_if.so user in group ${SUDOADD}" >> /etc/pam.d/password-auth;
+
+	echo -n "Please provide a user with sufficient privilege to join the domain : ";
+	read USER;
+
+	net ads join -U "${USER}";
 else
-	echo "Script aborted"
-	exit 0
+	echo "Script aborted";
+	exit 1;
 fi
-exit 0
+
+exit 0;
