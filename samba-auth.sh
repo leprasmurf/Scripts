@@ -5,6 +5,7 @@
 sudoers="/etc/sudoers"
 ubuntu="/etc/debian_version"
 redhat="/etc/redhat-release"
+pam_pass="/etc/pam.d/password-auth"
 
 ### Domain Variables ###                                                                                                   
                                                                                                                            
@@ -96,8 +97,12 @@ then
 		echo "Skipping Sudoers"
 	fi
 
-	echo "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" >> /etc/pam.d/password-auth
-
+	if grep -q "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" ${pam_pass}
+		then echo "Group already in Sudoers"
+	else
+		echo "auth	requisite	pam_succeed_if.so user ingroup ${sudoadd}" >> ${pam_pass}
+	fi
+	
 	echo -n "Please provide a user with sufficient privelage to join the domain : "
 	read user
 
