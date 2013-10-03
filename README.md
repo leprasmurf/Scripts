@@ -1,4 +1,3 @@
 scripts
 =======
-
-Random scripts I write (they're terrible be aware)
+Random scripts for a variety of purposes.
