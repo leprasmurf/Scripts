@@ -3,7 +3,8 @@ use Getopt::Long;
 use strict;
 
 # Variable declaration
-my @server_list = `/usr/sbin/ntpq -pn`;
+my $ntpq_path = chomp(`/usr/bin/which ntpq`);
+my @server_list = `$ntpq_path -pn`;
 my %server_health;
 my $peer_count;
 my $overall_health = 0;
