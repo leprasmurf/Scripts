@@ -1,5 +1,4 @@
 #!/usr/bin/ruby
-require 'pp';
 require 'optparse';
 
 ##### Helper Functions #####
