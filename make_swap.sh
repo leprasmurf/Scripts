@@ -3,7 +3,6 @@
 ################################
 ##### Variable Declaration #####
 ################################
-DEBUG=0;
 FILE="/swapfile1";
 SIZE=524288;
 
@@ -62,17 +61,9 @@ while [ $# -ne 0 ]; do
 			;;
 		-s|--size)
 			SIZE=$( ${ECHO} "${2} * 1024"|${BC} );
-			if [ ${DEBUG} ];
-			then
-				${ECHO} "New size == ${SIZE}";
-			fi
 			shift;
 			;;
 		-f|--file)
-			if [ ${DEBUG} ];
-			then
-				${ECHO} "Set Destination path to ${2}.";
-			fi
 			FILE=$2;
 			shift;
 			;;
