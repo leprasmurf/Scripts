@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Purpose: Create and activate a new swapfile.  Size and location determined by user flags
+#
+# By: Timothy Forbes
+# Date: 11/3/2013
 
 ################################
 ##### Variable Declaration #####
