@@ -9,6 +9,7 @@ API=$( head -n1 /home/leprasmurf/.do_api_key )
 API_URL="https://api.digitalocean.com/v2/";
 CONFIRM='n';
 IMAGE="";
+KEY="";
 MIN_DISK_SIZE="";
 NAME="";
 QUERY_SIZE="100"
@@ -144,7 +145,7 @@ function get_snapshot {
 function get_size {
 	${ECHO} "${TXT_CYAN}Retrieving sizes available...${TXT_RESET}";
 
-	sizes=( $( ${CURL} -X GET -H "Authorization: Bearer ${API}" "https://api.digitalocean.com/v2/sizes" | ${GREP} -Po '"slug":(\d*?,|.*?[^\\]",)' | ${AWK} -F'[:,]' '{print $2}' | ${SED} -e 's/"//g' ) )
+	sizes=( $( ${CURL} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/sizes" | ${GREP} -Po '"slug":(\d*?,|.*?[^\\]",)' | ${AWK} -F'[:,]' '{print $2}' | ${SED} -e 's/"//g' ) )
 
 	counter=0;
 
@@ -163,12 +164,45 @@ function get_size {
 
 		if [ ${size_selection} -gt ${#sizes[@]} ];
 		then
-			${ECHO} "${TXT_RED}You're entry (${TXT_RESET}${size_selection}${TXT_RED}) is beyond the available selection.";
+			${ECHO} "${TXT_RED}Your entry (${TXT_RESET}${size_selection}${TXT_RED}) is beyond the available selection.";
 			unset size_selection;
 		fi
 	done
 
 	SIZE=${sizes[${size_selection}]};
+	${ECHO} "${TXT_BLUE}Building size:${TXT_RESET} ${SIZE}";
+}
+
+function get_key {
+	${ECHO} "${TXT_CYAN}Retrieving available keys...${TXT_RESET}";
+
+	key_list=$( ${CURL} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/account/keys" );
+	
+	key_ids=( $( ${ECHO} ${key_list} | ${GREP} -Po '"id":\d*' | ${AWK} -F":" '{print $2}' ) );
+	key_names=( $( ${ECHO} ${key_list} | ${GREP} -Po '"name":"[^"]*' | ${AWK} -F"\"" '{print $4}' ) );
+
+	counter=0;
+	for id in ${key_ids[@]};
+	do
+		${ECHO} "${counter} - ${key_names[${counter}]} (${id})";
+		let counter++;
+	done
+
+	while [ -z ${key_selection} ];
+	do
+		${ECHO} -n "${TXT_YELLOW}Please select a key:${TXT_RESET} ";
+		read key_selection;
+
+		key_selection=$( ${ECHO} ${key_selection} | ${SED} -e 's/[^0-9]//g' );
+
+		if [ ${key_selection} -gt ${#key_ids[@]} ];
+		then
+			${ECHO} "${TXT_RED}Your entry (${TXT_RESET}${key_selection}${TXT_RED}) is beyond the available selection.";
+			unset key_selection;
+		fi
+	done
+
+	KEY=${key_ids[${key_selection}]};
 }
 
 ######################################
@@ -259,13 +293,42 @@ fi
 
 while [ -z ${NAME} ];
 do
-	${ECHO} "Please provide a name for your new instance:";
+	${ECHO} "${TXT_YELLOW}Please provide a name for your new instance:${TXT_RESET}";
 	read NAME;
+done
+
+while [ -z ${KEY} ];
+do
+	${ECHO} -n "${TXT_YELLOW}Would you like to add an SSH key (y/n)?${TXT_RESET} ";
+	read ssh_add;
+
+	ssh_add=$( ${ECHO} "${ssh_add}" | ${TR} [:upper:] [:lower:] );
+
+	if [ "${ssh_add}" == "y" ];
+	then
+		get_key;
+	else
+		KEY="null";
+	fi
 done
 
 if [ ${DEBUG} -eq 1 ];
 then
-	${ECHO} "${CURL} -X POST \"${API_URL}/droplets\" -d '{\"name\":\"${NAME}\",\"region\":\"'${REGION}'\",\"size\":\"'${SIZE}'\",\"image\":'${IMAGE}'}' -H \"Authorization: Bearer ${API}\";";
+	${ECHO} "${CURL} -X POST \"${API_URL}/droplets\" \
+		-d '{
+			\"name\":\"${NAME}\",
+			\"region\":\"${REGION}\",
+			\"size\":\"${SIZE}\",
+			\"ssh_keys\":\"${KEY}\",
+			\"image\":\"${IMAGE}\"
+		}' -H \"Authorization: Bearer ${API}\";";
 else
-	${CURL} -X POST "${API_URL}/droplets" -d '{"name":"${NAME}","region":"'${REGION}'","size":"'${SIZE}'","image":'${IMAGE}'}' -H "Authorization: Bearer ${API}";
+	${CURL} -X POST "${API_URL}/droplets" \
+		-d "{
+			\"name\":\"${NAME}\",
+			\"region\":\"${REGION}\",
+			\"size\":\"${SIZE}\",
+			\"ssh_keys\":${KEY},
+			\"image\":${IMAGE}
+		}" -H "Authorization: Bearer ${API}";
 fi
