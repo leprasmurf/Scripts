@@ -5,7 +5,7 @@
 ##########################
 DEBUG=0;
 
-API=$( head -n1 /home/leprasmurf/.do_api_key )
+API=$( head -n1 ~/.do_api_key )
 API_URL="https://api.digitalocean.com/v2/";
 CONFIRM='n';
 IMAGE="";
