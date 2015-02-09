@@ -1,12 +1,13 @@
-#!/bin/bash
+#!/bin/bash -x
 
 ##########################
 ##### Data variables #####
 ##########################
+#set -vx;
 DEBUG=0;
 
 API=$( head -n1 ~/.do_api_key )
-API_URL="https://api.digitalocean.com/v2/";
+API_URL="https://api.digitalocean.com/v2";
 CONFIRM='n';
 IMAGE="";
 KEY="";
@@ -15,14 +16,14 @@ NAME="";
 QUERY_SIZE="100"
 REGION="";
 SIZE="";
-SLUG="";
 TYPE='';
 
 #############################
 ##### Command variables #####
 #############################
 AWK=$( which awk || echo "/usr/bin/awk" );
-CURL=$( which curl || echo "/usr/bin/curl" )" -s -H 'Content-Type: application/json'";
+CURL=$( which curl || echo "/usr/bin/curl" );
+CURL_OPTS="-s -H 'Content-Type: application/json'";
 ECHO=$( which echo || echo "/usr/bin/echo" )" -e";
 GREP=$( which grep || echo "/usr/bin/grep" );
 MV=$( which mv || echo "/bin/mv" );
@@ -60,24 +61,50 @@ function helpme {
 	${ECHO} "";
 }
 
-function get_image_details {
-	${CURL} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/images?page=1&per_page=${QUERY_SIZE}&${1}" | ${GREP} -Po '"slug":(\d*?,|.*?[^\\]",)' | ${AWK} -F'"' 'BEGIN {counter = 1 } { { print counter " - " $4 } { counter++ } }'
+# Get the Image ID for the Base Distro 
+function get_distro {
+	${ECHO} "${TXT_CYAN}Retrieving the list of images...${TXT_RESET}";
 
-	while [ -z ${SLUG} ];
+	get_image_details "type=distribution";
+}
+
+# Get the Image ID for an Application
+function get_app {
+	${ECHO} "${TXT_CYAN}Retrieving the list of applications...${TXT_RESET}";
+
+	get_image_details "type=application";
+}
+
+# Get the Image ID for a Snapshot
+function get_snapshot {
+	${ECHO} "${TXT_CYAN}Retrieving the list of snapshots...${TXT_RESET}";
+
+	get_image_details "private=true";
+}
+
+function get_image_details {
+	${CURL} ${CURL_OPTS} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/images?page=1&per_page=${QUERY_SIZE}&${1}" | ${GREP} -Po '"slug":"([^"]*)' | ${AWK} -F'"' 'BEGIN {counter = 1 } { { print counter " - " $4 } { counter++ } }'
+
+	while [ -z ${image_selection} ];
 	do
 		${ECHO} -n "${TXT_YELLOW}Please select an image:${TXT_RESET} ";
-		read SLUG;
+		read image_selection;
 
-		SLUG=$( ${ECHO} ${SLUG} | ${SED} -e 's/[^0-9]//g' );
+		image_selection=$( ${ECHO} ${image_selection} | ${SED} -e 's/[^0-9]//g' );
+
+		if [ ${image_selection} -gt ${QUERY_SIZE} ];
+		then
+			${ECHO} "${TXT_RED}Your entry (${TXT_RESET}${image_selection}${TXT_RED}) is beyond the available selection.";
+		fi
 	done
 
-	record=$( ${CURL} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/images?page=${SLUG}&per_page=1&${1}" );
+	record=$( ${CURL} ${CURL_OPTS} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/images?page=${image_selection}&per_page=1&${1}" );
 
 	IMAGE=$( ${ECHO} ${record} | ${GREP} -Po '"id":(\d*?,|.*?[^\\]",)' | ${AWK} -F'[:,]' '{print $2}' );
 
 	if [ -z ${IMAGE} ];
 	then
-		${ECHO} "${TXT_RED}No image id found for your selection (${TXT_RESET}${SLUG}${TXT_RED}).${TXT_RESET}";
+		${ECHO} "${TXT_RED}No image id found for your selection (${TXT_RESET}${image_selection}${TXT_RED}).${TXT_RESET}";
 		exit 1;
 	fi
 
@@ -85,7 +112,7 @@ function get_image_details {
 }
 
 function get_region {
-	record=$( ${CURL} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/images/${IMAGE}" );
+	record=$( ${CURL} ${CURL_OPTS} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/images/${IMAGE}" );
 
 	avail_regions=( $( ${ECHO} ${record} | ${GREP} -Po '"regions":(\d*?,|.*?[^\\]],)' | ${AWK} -F'[][]' '{print $2}' | ${SED} -e 's/"//g' -e 's/,/ /g' ) );
 
@@ -121,31 +148,10 @@ function get_region {
 	MIN_DISK_SIZE=$( ${ECHO} ${record} | ${GREP} -Po '"min_disk_size":(\d*)' | ${AWK} -F":" '{print $2}' );
 }
 
-# Get the Image ID for the Base Distro 
-function get_distro {
-	${ECHO} "${TXT_CYAN}Retrieving the list of images...${TXT_RESET}";
-
-	get_image_details "type=distribution";
-}
-
-# Get the Image ID for an Application
-function get_app {
-	${ECHO} "${TXT_CYAN}Retrieving the list of applications...${TXT_RESET}";
-
-	get_image_details "type=application";
-}
-
-# Get the Image ID for a Snapshot
-function get_snapshot {
-	${ECHO} "${TXT_CYAN}Retrieving the list of snapshots...${TXT_RESET}";
-
-	get_image_details "private=true";
-}
-
 function get_size {
 	${ECHO} "${TXT_CYAN}Retrieving sizes available...${TXT_RESET}";
 
-	sizes=( $( ${CURL} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/sizes" | ${GREP} -Po '"slug":(\d*?,|.*?[^\\]",)' | ${AWK} -F'[:,]' '{print $2}' | ${SED} -e 's/"//g' ) )
+	sizes=( $( ${CURL} ${CURL_OPTS} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/sizes" | ${GREP} -Po '"slug":(\d*?,|.*?[^\\]",)' | ${AWK} -F'[:,]' '{print $2}' | ${SED} -e 's/"//g' ) )
 
 	counter=0;
 
@@ -176,7 +182,7 @@ function get_size {
 function get_key {
 	${ECHO} "${TXT_CYAN}Retrieving available keys...${TXT_RESET}";
 
-	key_list=$( ${CURL} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/account/keys" );
+	key_list=$( ${CURL} ${CURL_OPTS} -X GET -H "Authorization: Bearer ${API}" "${API_URL}/account/keys" );
 	
 	key_ids=( $( ${ECHO} ${key_list} | ${GREP} -Po '"id":\d*' | ${AWK} -F":" '{print $2}' ) );
 	key_names=( $( ${ECHO} ${key_list} | ${GREP} -Po '"name":"[^"]*' | ${AWK} -F"\"" '{print $4}' ) );
@@ -308,27 +314,45 @@ do
 	then
 		get_key;
 	else
-		KEY="null";
+		break;
 	fi
 done
 
+
+if [ -z ${KEY} ];
+then
+	read -r -d '' api_command <<-EOF
+		{
+			"name":"${NAME}",
+			"region":"${REGION}",
+			"size":"${SIZE}",
+			"image":"${IMAGE}"
+		}
+	EOF
+else
+	read -r -d '' api_command <<-EOF
+		{
+			"name":"${NAME}",
+			"region":"${REGION}",
+			"size":"${SIZE}",
+			"ssh_keys":["${KEY}"],
+			"image":"${IMAGE}"
+		}
+	EOF
+fi
+	
+${ECHO} "Name: \"${NAME}\"";
+${ECHO} "Region: \"${REGION}\"";
+${ECHO} "Size: \"${SIZE}\"";
+${ECHO} "Key ID: \"${KEY}\"";
+${ECHO} "Image ID: \"${IMAGE}\"";
+
 if [ ${DEBUG} -eq 1 ];
 then
-	${ECHO} "${CURL} -X POST \"${API_URL}/droplets\" \
-		-d '{
-			\"name\":\"${NAME}\",
-			\"region\":\"${REGION}\",
-			\"size\":\"${SIZE}\",
-			\"ssh_keys\":\"${KEY}\",
-			\"image\":\"${IMAGE}\"
-		}' -H \"Authorization: Bearer ${API}\";";
+	${ECHO} "${CURL} ${CURL_OPTS} -X POST -H \"Authorization: Bearer ${API}\" -d \"${api_command}\"  \"${API_URL}/droplets\"";
 else
-	${CURL} -X POST "${API_URL}/droplets" \
-		-d "{
-			\"name\":\"${NAME}\",
-			\"region\":\"${REGION}\",
-			\"size\":\"${SIZE}\",
-			\"ssh_keys\":${KEY},
-			\"image\":${IMAGE}
-		}" -H "Authorization: Bearer ${API}";
+	# Working
+	${CURL} -s -H 'Content-Type: application/json' -X POST -H "Authorization: Bearer ${API}" -d "${api_command}"  "${API_URL}/droplets";
+	# Not working
+	#${CURL} ${CURL_OPTS} -X POST -H "Authorization: Bearer ${API}" -d "${api_command}"  "${API_URL}/droplets";
 fi
