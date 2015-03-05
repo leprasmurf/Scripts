@@ -11,5 +11,5 @@ ${SCREEN} -S myScreen -X screen -t Server4 ssh 10.0.0.4
 ${SCREEN} -S myScreen -X screen -t Server5 ssh 10.0.0.5
 ${SCREEN} -S myScreen -X screen -t Server6 ssh 10.0.0.6
 
-${SCREEN} -x
+${SCREEN} -x myScreen
 
