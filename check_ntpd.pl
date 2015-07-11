@@ -3,7 +3,7 @@ use Getopt::Long;
 use strict;
 
 # Variable declaration
-my $ntpq_path = `/usr/bin/which ntpq`;
+my $ntpq_path = `/usr/bin/which ntpq || echo "/sbin/ntpq"`;
 $ntpq_path =~ s/\n//g;
 my @server_list = `$ntpq_path -pn`;
 my %server_health;
@@ -26,11 +26,11 @@ GetOptions(
 # Cycle through and remove useless information
 for(my $i = 0; $i < @server_list; $i++) {
 	# Disregard localhost enties
-	if($server_list[$i] =~ /LOCAL/) {
+	if($server_list[$i] =~ /LOCAL|LOCL/) {
 		splice(@server_list, $i, 1);
 		$i--;
 	# Remove the header line
-	} elsif($server_list[$i] =~ /jitter$/) {
+	} elsif($server_list[$i] =~ /jitter$|disp$/) {
 		splice(@server_list, $i, 1);
 		$i--;
 	# Remove the header seperator
@@ -78,7 +78,7 @@ for(my $i = 0; $i < @server_list; $i++) {
 
 	# Calculate good packets received
 	$x = int(($good_count / 8) * 100);
-	
+
 	# Set percentage in hash
 	$server_health{$tmp_array[0]} = $x;
 }
@@ -131,18 +131,19 @@ print_server_list();
 exit 0;
 
 sub print_server_list {
-	print "---------------------------\n";
+	print "------------------------------------------------------\n";
 	while(my($key, $val) = each(%server_health)) {
 		print "Received " . $val . "% of the traffic from " . $key . "\n";
 	}
 }
 
 sub print_overall_health {
-	print $_[0] . " - NTPd Health is " . $overall_health . "% with " . $peer_count . " peers.\n";
+	print $_[0] . " - NTPd Health is " . $overall_health . "% with " . $peer_count . " peer(s).\n";
+	print "Thresholds:  Health (" . $warning_threshold . "%|" . $critical_threshold . "%); Peers (" . $peer_warning_threshold . "|" . $peer_critical_threshold . ")\n";
 }
 
 sub display_help {
-	print "This nagios check is to determine the health of the NTPd client on the local system.  It uses the reach attribute from 'ntpq -p' to determine the health of each listed peer, and determines the average health based on the number of peers.  For example, if there are 3 peers, and one peer has dropped 2 of the last 8 packets, it's health will be 75%.  This will result in an overall health of about 92% ((100+100+75) / 3).\n";
+	print "This nagios check is to determine the health of the NTPd client on the local system.  It uses the reach attribute from 'ntpq -pn' to determine the health of each listed peer, and determines the average health based on the number of peers.  For example, if there are 3 peers, and one peer has dropped 2 of the last 8 packets, its health will be 75%.  This will result in an overall health of about 92% ((100+100+75) / 3).\n";
 	print "\n";
 	print "Available Options:\n";
 	print "\t--critical|-c <num>\t-Set the critical threshold for overall health (default:50)\n";
@@ -152,4 +153,3 @@ sub display_help {
 	print "\t--help|-h\t\t-display this help\n";
 	exit 0;
 }
-
