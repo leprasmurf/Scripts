@@ -4,7 +4,7 @@ use strict;
 
 # Variable declaration
 my $ntpq_path = `/usr/bin/which ntpq || echo "/sbin/ntpq"`;
-$ntpq_path =~ s/\n//g;
+chomp($ntpq_path);
 my @server_list = `$ntpq_path -pn`;
 my %server_health;
 my $peer_count;
@@ -35,6 +35,10 @@ for(my $i = 0; $i < @server_list; $i++) {
 		$i--;
 	# Remove the header seperator
 	} elsif($server_list[$i] =~ /^===/) {
+		splice(@server_list, $i, 1);
+		$i--;
+	# Remove failed NTPq returns
+	} elsif($server_list[$i] =~ /^No association/) {
 		splice(@server_list, $i, 1);
 		$i--;
 	}
@@ -143,7 +147,15 @@ sub print_overall_health {
 }
 
 sub display_help {
-	print "This nagios check is to determine the health of the NTPd client on the local system.  It uses the reach attribute from 'ntpq -pn' to determine the health of each listed peer, and determines the average health based on the number of peers.  For example, if there are 3 peers, and one peer has dropped 2 of the last 8 packets, its health will be 75%.  This will result in an overall health of about 92% ((100+100+75) / 3).\n";
+	print "This nagios check determines the health of NTPd on a system by calculating ";
+	print "the overall health of the peers associated with the daemon.  This check also ";
+	print "verifies other attributes, such as the number of peers available, and whether ";
+	print "a peer has been selected to be the sync source.  The overall health percentage ";
+	print "is a cumulative average of the reach over the peers.\n";
+	print "\n";
+	print "Example:  If 3 peers are listed, and 1 of the 3 dropped 2 of the last 8 packets, ";
+	print "the health of that peer would be 75%, and the overall health would be about 92% ";
+	print "((100 + 100 + 75) / 3).\n";
 	print "\n";
 	print "Available Options:\n";
 	print "\t--critical|-c <num>\t-Set the critical threshold for overall health (default:50)\n";
