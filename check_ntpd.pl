@@ -129,7 +129,7 @@ if($selected_primary ne "true") {
 	print_server_list();
 	exit 2;
 #if there is no backup ntp server selected, warn
-} elsif($no_check_backup and $selected_backup < 1) {
+} elsif(!$no_check_backup and $selected_backup < 1) {
 	print_overall_health("Warning");
 	print_server_list();
 	exit 1;
