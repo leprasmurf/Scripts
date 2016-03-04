@@ -20,6 +20,7 @@ GetOptions(
 		"warning=i" => \(my $warning_threshold = '75'),
 		"peer_critical=i" => \(my $peer_critical_threshold = '1'),
 		"peer_warning=i" => \(my $peer_warning_threshold = '2'),
+		"no-check-backup" => \(my $no_check_backup = 0),
 		"help" => \&display_help,
 );
 
@@ -128,7 +129,7 @@ if($selected_primary ne "true") {
 	print_server_list();
 	exit 2;
 #if there is no backup ntp server selected, warn
-} elsif($selected_backup < 1) {
+} elsif($no_check_backup and $selected_backup < 1) {
 	print_overall_health("Warning");
 	print_server_list();
 	exit 1;
@@ -173,6 +174,7 @@ sub display_help {
 	print "\t--warning|-w <num>\t-Set the warning threshold for overall health (default:75)\n";
 	print "\t--peer_critical <num>\t-Set the critical threshold for number of peers (default:1)\n";
 	print "\t--peer_warning <num>\t-Set the warning threshold for number of peers (default:2)\n";
+	print "\t--no-check-backup\t-Don't check backup availability\n";
 	print "\t--help|-h\t\t-display this help\n";
 	exit 0;
 }
