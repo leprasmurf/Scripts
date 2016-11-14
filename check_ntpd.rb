@@ -28,19 +28,19 @@ OptionParser.new do |opts|
 	opts.banner = "Usage: check_ntpd.rb [options]";
 
 	opts.on("-c", "--critical [INT]", "Set the Critical Health Threshold.") do |c|
-		options[:critical_threshold] = c;
+		options[:critical_threshold] = c.to_i;
 	end
 
 	opts.on("-w", "--warning [INT]", "Set the Warning Health Threshold.") do |w|
-		options[:warning_threshold] = w;
+		options[:warning_threshold] = w.to_i;
 	end
 
 	opts.on("--peer_critical [INT]", "Set the Critical threshold on the number of active peers.") do |c|
-		options[:peer_critical_threshold] = c;
+		options[:peer_critical_threshold] = c.to_i;
 	end
 
 	opts.on("--peer_warning [INT]", "Set the Warning threshold on the number of active peers.") do |w|
-		options[:peer_warning_threshold] = w;
+		options[:peer_warning_threshold] = w.to_i;
 	end
 end.parse!
 
