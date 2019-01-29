@@ -1,0 +1,28 @@
+# Bash function to add in .bashrc or .profile to idempotently setup an SSH agent for the current user
+
+function setup_ssh {
+  cagent=$( pidof -s ssh-agent );
+  SSH_AUTH_SOCK=$( find /tmp -maxdepth 2 -iname 'agent*' -uid $( id -u ) 2>/dev/null | head -n1 );
+
+  if [ -z ${cagent} ] || [ -z ${SSH_AUTH_SOCK} ];
+  then
+    # Start a new ssh-agent with 24h expiration of keys
+    eval $( /usr/bin/ssh-agent -t 86400 -s );
+  else
+    # Connect to an existing ssh-agent
+    export SSH_AUTH_SOCK;
+    export SSH_AGENT_PID=${cagent};
+    echo "Agent PID: ${SSH_AGENT_PID}";
+  fi
+
+  # Check if a key is already listed
+  if ssh-add -l > /dev/null;
+  then
+    echo "Identity present in agent";
+  else
+    # Add default key to agent
+    /usr/bin/ssh-add;
+  fi
+
+  echo "Done"
+}
