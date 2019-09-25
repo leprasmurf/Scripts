@@ -249,7 +249,15 @@ sub print_overall_health {
 }
 
 sub display_help {
-        print "This nagios check is to determine the health of the NTPd client on the local system.  It uses the reach attribute from 'ntpq -pn' to determine the health of each listed peer, and determines the average health based on the number of peers.  For example, if there are 3 peers, and one peer has dropped 2 of the last 8 packets, it's health will be 75%.  This will result in an overall health of about 92% ((100+100+75) / 3).\n";
+     	  print "This nagios check is to determine the health of the NTPd client on the local system.";
+	      print "Plugin checks ntpq, then chronyc, then systemd_timesyncd.";
+	      print "You should use only ONE method for time sync and remove other packages";
+	      print "Plugin search ntpq binary, then chronyc binary, then /etc/systemd/timesyncd.conf config file.";
+	      print "It uses the reach attribute from 'ntpq -pn' or 'chronyc sources' to determine ";
+	      print "the health of each listed peer, and determines the average health based on the number of peers.";
+	      print "For example, if there are 3 peers, and one peer has dropped 2 of the last 8 packets,";
+	      print "it's health will be 75%.  This will result in an overall health of about 92% ((100+100+75) / 3).";
+	      print "timesyncd.conf not provides stats.";
         print "\n";
         print "Available Options:\n";
         print "\t--critical|-c <num>\t-Set the critical threshold for overall health (default:50)\n";
