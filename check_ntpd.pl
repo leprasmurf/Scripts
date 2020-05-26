@@ -7,6 +7,7 @@ my $ntpq_path = `/usr/bin/which ntpq || echo "/sbin/ntpq"`;
 chomp($ntpq_path);
 my @server_list = `$ntpq_path -pn`;
 my %server_health;
+my %server_offset;
 my $peer_count;
 my $overall_health = 0;
 my $good_count;
@@ -19,6 +20,7 @@ GetOptions(
 		"warning=i" => \(my $warning_threshold = '75'),
 		"peer_critical=i" => \(my $peer_critical_threshold = '1'),
 		"peer_warning=i" => \(my $peer_warning_threshold = '2'),
+		"no-check-backup" => \(my $no_check_backup = 0),
 		"help" => \&display_help,
 );
 
@@ -85,6 +87,9 @@ for(my $i = 0; $i < @server_list; $i++) {
 
 	# Set percentage in hash
 	$server_health{$tmp_array[0]} = $x;
+	
+	# Set offset in new hash
+        $server_offset{$tmp_array[0]} = $tmp_array[8];
 }
 
 # Cycle through hash and tally weighted average of peer health
@@ -124,7 +129,7 @@ if($selected_primary ne "true") {
 	print_server_list();
 	exit 2;
 #if there is no backup ntp server selected, warn
-} elsif($selected_backup < 1) {
+} elsif(!$no_check_backup and $selected_backup < 1) {
 	print_overall_health("Warning");
 	print_server_list();
 	exit 1;
@@ -135,15 +140,22 @@ print_server_list();
 exit 0;
 
 sub print_server_list {
-	print "------------------------------------------------------\n";
 	while(my($key, $val) = each(%server_health)) {
 		print "Received " . $val . "% of the traffic from " . $key . "\n";
 	}
+	# display perf data
+	print "|";
+        my $i=0;
+        while(my($key, $val) = each(%server_offset)) {
+                print "offset" . $i . "=" . "$val;;; ";
+                $i+=1;
+        }
+        print "\n";
 }
 
 sub print_overall_health {
 	print $_[0] . " - NTPd Health is " . $overall_health . "% with " . $peer_count . " peer(s).\n";
-	print "Thresholds:  Health (" . $warning_threshold . "%|" . $critical_threshold . "%); Peers (" . $peer_warning_threshold . "|" . $peer_critical_threshold . ")\n";
+	print "Thresholds:  Health (" . $warning_threshold . "%," . $critical_threshold . "%); Peers (" . $peer_warning_threshold . "," . $peer_critical_threshold . ")\n";
 }
 
 sub display_help {
@@ -162,6 +174,7 @@ sub display_help {
 	print "\t--warning|-w <num>\t-Set the warning threshold for overall health (default:75)\n";
 	print "\t--peer_critical <num>\t-Set the critical threshold for number of peers (default:1)\n";
 	print "\t--peer_warning <num>\t-Set the warning threshold for number of peers (default:2)\n";
+	print "\t--no-check-backup\t-Don't check backup availability\n";
 	print "\t--help|-h\t\t-display this help\n";
 	exit 0;
 }
