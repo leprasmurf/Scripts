@@ -2,7 +2,7 @@
 
 function setup_ssh {
   # set -x
-  cagent=$( pidof -s ssh-agent );
+  cagent=$( ps ux | awk '/ssh[-]agent/ {print $2}' );
 
   if [ -z ${cagent} ];
   then
@@ -13,7 +13,7 @@ function setup_ssh {
     SSH_AUTH_SOCK=$(
       find /tmp -maxdepth 2 -iname 'agent*' -uid $( id -u ) -print0 2>/dev/null | \
       xargs -0 stat -c "%Y %n" | \
-      sort -nr | \
+      sort -n | \
       awk '{print $2; exit}'
     )
     export SSH_AGENT_PID=${cagent};
